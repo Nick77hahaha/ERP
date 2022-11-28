@@ -1,3 +1,11 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="cm.misc.*" %>
+<%@ page import="java.sql.ResultSet" %>
+<%@ page import="java.util.*" %>
+<%@ page import="java.text.SimpleDateFormat" %>
+<%@ page import="java.util.LinkedHashMap" %>
+<%@ page import="java.util.Map" %>
+<%@ page import="java.text.*" %>
 <%
 Utils u = new Utils(request);
 try {
@@ -37,11 +45,11 @@ try {
 		queryBiS = new String(queryBiS.getBytes("iso-8859-1"), "utf-8");
 	}
 	
-	if (act.equals("new")) { 
+	if (act.equals("new")) { // 新增. 
 		act = "insertNew";
 		qingGRQ = u.getToday();
 		qingGRYhr0003Sn = u.getSessionHr0003Sn();
-	} else if (act.equals("insertNew")) { 
+	} else if (act.equals("insertNew")) { // 新增到db.
 		synchronized(this) {
 			u.setTransaction();
 			Calendar cal = Calendar.getInstance();
@@ -117,6 +125,7 @@ try {
 			queRsys0005ShiFDM = u.getRsString(rs, "queRsys0005ShiFDM");
 			yiCGsys0005ShiFDM = u.getRsString(rs, "yiCGsys0005ShiFDM");
 		}
+		act = "updateEdit";
 	} else if (act.equals("updateEdit") || act.equals("chuCBQR")) {
 		u.setTransaction();
 		sql = new StringBuffer("update cmmm..mm0001 set qingGRYhr0003Sn = ?, qingGRQ = ?, beiZ = ?, version = version + 1, ");
@@ -144,6 +153,7 @@ try {
 		int i = 0;
 		for (String mm0001aSn : mm0001aSns) {
 			if (mm0001aSn.equals("0")) {
+				//insert
 				if (mm0001aDeletes[i].equals("")) {
 					//insert into mm0001a
 					sql = new StringBuffer("insert into cmmm..mm0001a (mm0001Sn, partno, sys0036DiPLBDM, zhouQ, zhangS, xuQRQ, qingGSL, ");
@@ -217,6 +227,7 @@ try {
 		}
 		u.commit();
 		response.sendRedirect("mm0002e.jsp?act=edit&mm0001Sn=" + mm0001Sn + "&queryDiPQGDH=" + u.unescape(queryDiPQGDH) + "&queryQingGRY=" + u.unescape(queryQingGRY) + "&queryPartno=" + u.unescape(queryPartno) + "&queryStartQingGRQ=" + u.unescape(queryStartQingGRQ) + "&queryEndQingGRQ=" + u.unescape(queryEndQingGRQ) + "&queryBiS=" + u.unescape(queryBiS));
+		act = "updateEdit";
 	} else if (act.equals("quXQR")) {
 		u.setTransaction();
 		sql = new StringBuffer("update cmmm..mm0001 set queRsys0005ShiFDM = 0, queRRYhr0003Sn = 0, queRRQ = '1900/01/01', version = version + 1, ");
@@ -231,6 +242,7 @@ try {
 		u.executeUpdate();
 		u.commit();
 		response.sendRedirect("mm0002e.jsp?act=edit&mm0001Sn=" + mm0001Sn + "&queryDiPQGDH=" + u.unescape(queryDiPQGDH) + "&queryQingGRY=" + u.unescape(queryQingGRY) + "&queryPartno=" + u.unescape(queryPartno) + "&queryStartQingGRQ=" + u.unescape(queryStartQingGRQ) + "&queryEndQingGRQ=" + u.unescape(queryEndQingGRQ) + "&queryBiS=" + u.unescape(queryBiS));
+		act = "updateEdit";
 	} else if (act.equals("shanC")) {
 		u.setTransaction();
 		sql = new StringBuffer("select sn from cmmm..mm0001a where mm0001Sn = ? ");
@@ -272,10 +284,21 @@ try {
 	} else if(act.equals("huiSY")) {
 		response.sendRedirect("mm0001q.jsp?act=retQuery&queryDiPQGDH=" + u.unescape(queryDiPQGDH) + "&queryQingGRY=" + u.unescape(queryQingGRY) + "&queryPartno=" + u.unescape(queryPartno) + "&queryStartQingGRQ=" + u.unescape(queryStartQingGRQ) + "&queryEndQingGRQ=" + u.unescape(queryEndQingGRQ) + "&queryBiS=" + u.unescape(queryBiS));
 	}
+	String chuCQX = "false";		//儲存權限
+	String shanCQX = "false";		//刪除權限
+	String chuCBQRQX = "false";		//儲存並確認權限
+	String xinZQGMXQX = "false";	//新增請購明細權限
+	String quXQRQX = "false";		//取消確認權限
+	String xinZXYBQX = "false";		//新增下一筆權限
+	String lieYQX = "false";		//列印權限
+	String huiSYQX = "false";		//回首頁權限
+	huiSYQX = "true";
 	if (mm0001Sn.equals("0")) {
+		//新增時
 		chuCQX = "true";
 		xinZQGMXQX = "true";
 	} else {
+		//編輯時
 		chuCQX = "true";
 		shanCQX = "true";
 		chuCBQRQX = "true";
@@ -286,10 +309,12 @@ try {
 		if (yiCGsys0005ShiFDM.equals("0")) {
 			if (queRsys0005ShiFDM.equals("0")) {
 			} else {
+				//已送審
 				chuCQX = "false";
 				shanCQX = "false";
 				chuCBQRQX = "false";
 				xinZQGMXQX = "false";
+				//未採購，故可以取消確認
 				quXQRQX = "true";
 			}
 		} else {
@@ -305,6 +330,7 @@ try {
 		qingGRYhr0003SnQX = "false";
 	}
 	if (!u.getSessionIsAdmin() && !u.getSessionZuZDM().equals("7") && !u.getSessionHr0002Sn().equals("2") && !u.getSessionHr0002Sn().equals("134") && !u.getSessionHr0002Sn().equals("174")) {
+		//只有工程課的人或雯莉、湘湄、芷葳可以按確認
 		chuCBQRQX = "false";
 		quXQRQX = "false";
 	}
@@ -438,7 +464,7 @@ $(function() {
 	});
 	$('input[name=mm0001aSC]').bind('click', mm0001aSCClick);
 	if ('<%=yiCGsys0005ShiFDM%>' != '0') {
-		alert('已採購，無法儲存！'); 
+		alert('請購單已採購，故無法儲存！'); 
 	}
 })
 function mm0001aSCClick() {
@@ -508,6 +534,7 @@ function chuCClick(type) {
 			});
 		}
 		if (errorStr.length == 0) {
+			//檢查料號是否正確
 			var errorFlag = false;
 			$('input[name=mm0001aSn]').each(function() {
 				var mm0001aDelete = $.trim($(this).closest("tr").find('input[name=mm0001aDelete]').val());
@@ -539,6 +566,13 @@ function chuCClick(type) {
 					});
 				}
 			});
+			if (errorFlag) {
+				if (errorStr.length == 0) {
+					errorStr = "產品編號資料有誤！";
+				} else {
+					errorStr += '\n' + "產品編號資料有誤！";
+				}
+			}
 		}
 		if (beiZ.length > 500) {
 			if (errorStr.length == 0) {
@@ -568,7 +602,15 @@ function setButtonDisable() {
 	$('#xinZQGMX').prop('disabled', true);
 }
 
-	
+function setButtonEnable() {
+	$('#chuC').prop('disabled', false);
+	$('#chuCBQR').prop('disabled', false);
+	$('#quXQR').prop('disabled', false);
+	$('#huiSY').prop('disabled', false);
+	$('#xinZXYB').prop('disabled', false);
+	$('#shanC').prop('disabled', false);
+	$('#xinZQGMX').prop('disabled', false);
+}	
 </script>
 </head>
 <body>
